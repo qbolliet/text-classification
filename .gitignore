@@ -1,0 +1,51 @@
+# Ignore python cahced files
+**/__pycache__/**
+
+# Ignore LaTeX compile files
+*.aux
+*.bbl
+*.blg
+*.brf
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.maf
+*.mtc
+*.mtc0
+*.nav
+*.snm
+*.synctex.gz
+*.synctex(busy)
+*.thm
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.ist
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.ist
+*.lol
+
+# Ignore BibTeX compile files
+*.bbl
+*.bcf
+*.blg
+*.run.xml
+
+# Ignore CSV files and zipped CSV files
+*.csv
+*.csv.zip
+
+# Ignore excel files
+*.xlsx
