@@ -49,3 +49,10 @@
 
 # Ignore excel files
 *.xlsx
+
+# Ignore
+*.json
+*.pt
+*.pth
+*.safetensors
+*.bin
