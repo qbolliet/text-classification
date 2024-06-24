@@ -1,2 +1,2 @@
-from .styles import *
 from .graphs import *
+from .styles import *

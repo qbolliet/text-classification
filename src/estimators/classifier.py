@@ -1,12 +1,13 @@
 # Importation des modules
 import pandas as pd
+from datasets import Dataset
 # Importation des modules sklearn
 from sklearn.base import BaseEstimator, ClassifierMixin
 # Séparation train/test
 from sklearn.model_selection import train_test_split
 # Importation des modules de NLP
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments, pipeline
-from datasets import Dataset
+from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
+                          Trainer, TrainingArguments, pipeline)
 
 
 # Classe permettant de raffiner l'entraînement d'un modèle de langage
@@ -31,8 +32,21 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         model (AutoModelForSequenceClassification): The pre-trained language model for sequence classification.
         trainer (Trainer, optional): The Hugging Face Trainer instance for training the model.
     """
+
     # Initialisation
-    def __init__(self, text_column,  num_labels=3, model_name='camembert-base', export_name='./finetuned_camembert', test_size=0.2, epochs=3, batch_size=16, logging_steps=10, warmup_steps=500, weight_decay=0.01):
+    def __init__(
+        self,
+        text_column,
+        num_labels=3,
+        model_name="camembert-base",
+        export_name="./finetuned_camembert",
+        test_size=0.2,
+        epochs=3,
+        batch_size=16,
+        logging_steps=10,
+        warmup_steps=500,
+        weight_decay=0.01,
+    ):
         self.text_column = text_column
         self.num_labels = num_labels
         self.model_name = model_name
@@ -44,11 +58,13 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         self.warmup_steps = warmup_steps
         self.weight_decay = weight_decay
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, num_labels=self.num_labels)
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            self.model_name, num_labels=self.num_labels
+        )
         self.trainer = None
 
     # Méthode auxiliaire de tokenisation
-    def _tokenize_function(self, examples : dict) -> dict:
+    def _tokenize_function(self, examples: dict) -> dict:
         """
         Tokenizes the input examples using the tokenizer.
 
@@ -58,10 +74,12 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             dict: A dictionary with tokenized data.
         """
-        return self.tokenizer(examples[self.text_column], padding="max_length", truncation=True)
+        return self.tokenizer(
+            examples[self.text_column], padding="max_length", truncation=True
+        )
 
     # Méthode de tokenisation des données
-    def tokenize(self, data : pd.DataFrame) -> Dataset :
+    def tokenize(self, data: pd.DataFrame) -> Dataset:
         """
         Tokenizes the input data and prepares it for training.
 
@@ -97,10 +115,12 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         # Copie indépendante du jeu de données
         df = X.copy()
         # Ajout du label
-        df['label'] = y
+        df["label"] = y
 
         # Séparation du jeu de données en jeu de données d'entraînement et jeu de données de validation
-        train_df, val_df = train_test_split(df, test_size=self.test_size, random_state=42)
+        train_df, val_df = train_test_split(
+            df, test_size=self.test_size, random_state=42
+        )
 
         # Tokenisation
         train_dataset = self.tokenize(data=train_df)
@@ -108,23 +128,23 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
 
         # Définition des arguments d'entraînement
         training_args = TrainingArguments(
-            output_dir='./results',          
-            num_train_epochs=self.epochs,    
-            per_device_train_batch_size=self.batch_size, 
-            warmup_steps=self.warmup_steps,  
-            weight_decay=self.weight_decay,  
-            logging_dir='./logs',
+            output_dir="./results",
+            num_train_epochs=self.epochs,
+            per_device_train_batch_size=self.batch_size,
+            warmup_steps=self.warmup_steps,
+            weight_decay=self.weight_decay,
+            logging_dir="./logs",
             logging_steps=self.logging_steps,
             evaluation_strategy="epoch",
-            save_strategy="epoch"
+            save_strategy="epoch",
         )
 
         # Initialisation du Trainer
         self.trainer = Trainer(
-            model=self.model,                  
-            args=training_args,                 
+            model=self.model,
+            args=training_args,
             train_dataset=train_dataset,
-            eval_dataset=eval_dataset     
+            eval_dataset=eval_dataset,
         )
 
         # Entrainement du modèle
@@ -153,7 +173,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         # Prédiction en utilisant le modèle entraîné
         predictions = self.trainer.predict(test_dataset)
         preds = predictions.predictions.argmax(-1)
-        
+
         return preds
 
 
@@ -175,10 +195,19 @@ class ZeroShotClassifier(BaseEstimator, ClassifierMixin):
         reverse_label_mapping (dict): A dictionary mapping descriptions to their corresponding labels.
         candidate_labels (list): A list of candidate label descriptions used for classification.
     """
-    def __init__(self, text_column, zero_shot_model_name='facebook/bart-large-mnli', summarizer_model_name="facebook/bart-large-cnn", label_descriptions=None):
+
+    def __init__(
+        self,
+        text_column,
+        zero_shot_model_name="facebook/bart-large-mnli",
+        summarizer_model_name="facebook/bart-large-cnn",
+        label_descriptions=None,
+    ):
         self.text_column = text_column
         self.zero_shot_model_name = zero_shot_model_name
-        self.classifier = pipeline("zero-shot-classification", model=self.zero_shot_model_name)
+        self.classifier = pipeline(
+            "zero-shot-classification", model=self.zero_shot_model_name
+        )
         self.summarizer_model_name = summarizer_model_name
         self.summarizer = pipeline("summarization", model=self.summarizer_model_name)
         self.label_descriptions = label_descriptions
@@ -197,11 +226,18 @@ class ZeroShotClassifier(BaseEstimator, ClassifierMixin):
             ZeroShotClassifier: The fitted classifier instance.
         """
         # Définition des descriptions possibles des labels
-        if self.label_descriptions is None :
-            self.label_descriptions = {category : self.generate_summary(text=' '.join(X.loc[y==category, self.text_column])) for category in y.unique()}
-        
+        if self.label_descriptions is None:
+            self.label_descriptions = {
+                category: self.generate_summary(
+                    text=" ".join(X.loc[y == category, self.text_column])
+                )
+                for category in y.unique()
+            }
+
         # Definition des lables candidats à partir de leur description
-        self.candidate_labels = [description for description in self.label_descriptions.values()]
+        self.candidate_labels = [
+            description for description in self.label_descriptions.values()
+        ]
 
         # Création d'un mapping inverse entre les valeurs numériques et leurs label
         self.reverse_label_mapping = {v: k for k, v in self.label_descriptions.items()}
@@ -219,14 +255,20 @@ class ZeroShotClassifier(BaseEstimator, ClassifierMixin):
             list: The predicted labels.
         """
         # Zero-shot classification
-        results = self.classifier(X, candidate_labels=self.candidate_labels, multi_label=False)
+        results = self.classifier(
+            X, candidate_labels=self.candidate_labels, multi_label=False
+        )
 
         # Association des labels prédits à leur valeur numérique
-        predicted_labels = [self.reverse_label_mapping[result['labels'][0]] for result in results]
+        predicted_labels = [
+            self.reverse_label_mapping[result["labels"][0]] for result in results
+        ]
 
         return predicted_labels
 
-    def generate_summary(self, text: str, max_length: int = 50, min_length: int = 25) -> str:
+    def generate_summary(
+        self, text: str, max_length: int = 50, min_length: int = 25
+    ) -> str:
         """
         Generates a small description (summary) of the input text.
 
@@ -239,8 +281,9 @@ class ZeroShotClassifier(BaseEstimator, ClassifierMixin):
         str: The generated summary.
         """
         # Génération du résumé
-        summary = self.summarizer(text, max_length=max_length, min_length=min_length, do_sample=False)
+        summary = self.summarizer(
+            text, max_length=max_length, min_length=min_length, do_sample=False
+        )
 
         # Extraction et retour du résumé
-        return summary[0]['summary_text']
-
+        return summary[0]["summary_text"]

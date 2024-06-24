@@ -1,25 +1,26 @@
 # Importation des modules
+from typing import List
+
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
-from typing import List
-# Modules sklearn
-from sklearn.base import BaseEstimator, TransformerMixin
+# Embeding de mots + contexte
+from gensim.models import Word2Vec
 # Modules de NLP
 # Preprocessing
 from nltk import download
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
+# Modules sklearn
+from sklearn.base import BaseEstimator, TransformerMixin
 # Embeding de mots
 from sklearn.feature_extraction.text import TfidfVectorizer
-# Embeding de mots + contexte
-from gensim.models import Word2Vec
+from tqdm import tqdm
 
 # Téléchargement de la ponctuation et des stopwords
-download('punkt')
-download('stopwords')
-download('wordnet')
+download("punkt")
+download("stopwords")
+download("wordnet")
 
 
 # Classe de tokenization de textes
@@ -44,7 +45,7 @@ class TokenizerTransformer(TransformerMixin, BaseEstimator):
     """
 
     # Initialisation
-    def __init__(self, text_colums : List[str], lemmatize : bool) -> None :
+    def __init__(self, text_colums: List[str], lemmatize: bool) -> None:
         """
         Initializes the TokenizerTransformer with the specified parameters.
 
@@ -69,7 +70,7 @@ class TokenizerTransformer(TransformerMixin, BaseEstimator):
             self: The fitted transformer.
         """
         return self
-    
+
     # Méthode de transformation des données par le transformer
     def transform(self, X, y=None):
         """
@@ -87,13 +88,15 @@ class TokenizerTransformer(TransformerMixin, BaseEstimator):
         # Initialisation de tqdm
         tqdm.pandas()
         # Parcours des colonnes de text
-        for text_column in self.text_columns :
-            X_res[text_column] = X_res[text_column].progress_apply(func=lambda x : self.filter_and_tokenize(text=x))
-        
+        for text_column in self.text_columns:
+            X_res[text_column] = X_res[text_column].progress_apply(
+                func=lambda x: self.filter_and_tokenize(text=x)
+            )
+
         return X_res
-    
+
     # Méthode de preprocessing des textes
-    def filter_and_tokenize(self, text : str):
+    def filter_and_tokenize(self, text: str):
         """
         Filters and tokenizes the input text, removing stop words and non-alphanumeric tokens.
         Applies lemmatization if specified.
@@ -105,26 +108,28 @@ class TokenizerTransformer(TransformerMixin, BaseEstimator):
             str: The processed text after tokenization and optional lemmatization.
         """
         # Initialisation des stop words
-        stop_words = set(stopwords.words('french'))
-        
+        stop_words = set(stopwords.words("french"))
+
         # Tokenization du texte
         word_tokens = word_tokenize(text.lower())
 
         # Filtre des stopwords et des token qui ne sont pas des caractères alphanumeriques
-        filtered_text = [word for word in word_tokens if word.isalnum() and word not in stop_words]
+        filtered_text = [
+            word for word in word_tokens if word.isalnum() and word not in stop_words
+        ]
 
         # Cas de la lemmatization
-        if self.lemmatize :
+        if self.lemmatize:
             # Initialisation du Lemmatizer
             lemmatizer = WordNetLemmatizer()
             # Lemmatisation
             filtered_text = [lemmatizer.lemmatize(word) for word in filtered_text]
-        
-        return ' '.join(filtered_text)
+
+        return " ".join(filtered_text)
 
 
 # Classe implémentant l'embeding TF-IDF
-class TFIDFTransformer(TransformerMixin, BaseEstimator) :
+class TFIDFTransformer(TransformerMixin, BaseEstimator):
     """
     A custom transformer that converts text data into numerical features using the TF-IDF (Term Frequency-Inverse Document Frequency) method.
 
@@ -135,13 +140,13 @@ class TFIDFTransformer(TransformerMixin, BaseEstimator) :
     Methods:
         fit(X, y=None):
             Trains the TF-IDF model on the provided text data.
-        
+
         transform(X, y=None):
             Transforms the text data into numerical features using the trained TF-IDF model.
     """
 
     # Initialisation
-    def __init__(self, text_column : str, max_features : int) -> None :
+    def __init__(self, text_column: str, max_features: int) -> None:
         """
         Initializes the TFIDFTransformer with the specified parameters.
 
@@ -154,7 +159,7 @@ class TFIDFTransformer(TransformerMixin, BaseEstimator) :
         self.max_features = max_features
 
     # Méthode d'entraînement
-    def fit(self, X, y=None) :
+    def fit(self, X, y=None):
         """
         Trains the TF-IDF model on the provided text data.
 
@@ -171,7 +176,7 @@ class TFIDFTransformer(TransformerMixin, BaseEstimator) :
         self.model.fit(X[self.text_column])
 
         return self
-    
+
     # Méthode de transformation des données
     def transform(self, X, y=None):
         """
@@ -188,7 +193,7 @@ class TFIDFTransformer(TransformerMixin, BaseEstimator) :
 
 
 # Classe implémentant l'embeding Word2Vec
-class Word2VecTransformer(TransformerMixin, BaseEstimator) :
+class Word2VecTransformer(TransformerMixin, BaseEstimator):
     """
     A custom transformer that converts text data into numerical features using the Word2Vec model.
 
@@ -200,13 +205,13 @@ class Word2VecTransformer(TransformerMixin, BaseEstimator) :
     Methods:
         fit(X, y=None):
             Trains the Word2Vec model on the provided text data.
-        
+
         transform(X, y=None):
             Transforms the text data into numerical features by averaging Word2Vec embeddings for each sentence.
     """
 
     # Initialisation
-    def __init__(self, text_column : str, num_features : int, window : int) -> None :
+    def __init__(self, text_column: str, num_features: int, window: int) -> None:
         """
         Initializes the Word2VecTransformer with the specified parameters.
 
@@ -221,7 +226,7 @@ class Word2VecTransformer(TransformerMixin, BaseEstimator) :
         self.window = window
 
     # Méthode d'entraînement du transformer
-    def fit(self, X, y=None) :
+    def fit(self, X, y=None):
         """
         Trains the Word2Vec model on the provided text data.
 
@@ -235,10 +240,16 @@ class Word2VecTransformer(TransformerMixin, BaseEstimator) :
         # Découpage du texte
         sentences = [text.split() for text in X[self.text_column]]
         # Entraînement du Word2Vec
-        self.model = Word2Vec(sentences=sentences, vector_size=self.num_features, window=self.window, min_count=1, workers=4)
-        
+        self.model = Word2Vec(
+            sentences=sentences,
+            vector_size=self.num_features,
+            window=self.window,
+            min_count=1,
+            workers=4,
+        )
+
         return self
-    
+
     # Méthode de transformation des données
     def transform(self, X, y=None):
         """
@@ -269,8 +280,16 @@ class Word2VecTransformer(TransformerMixin, BaseEstimator) :
             features[i] = feature_vec
 
         # Conversion en DataFrame
-        X_res = pd.concat([X, pd.DataFrame(features, index=X.index, columns=[f"feature_{i}" for i in range(self.num_features)])], axis=1).drop(self.text_column, axis=1)
+        X_res = pd.concat(
+            [
+                X,
+                pd.DataFrame(
+                    features,
+                    index=X.index,
+                    columns=[f"feature_{i}" for i in range(self.num_features)],
+                ),
+            ],
+            axis=1,
+        ).drop(self.text_column, axis=1)
 
         return X_res
-
-    

@@ -1,15 +1,16 @@
 # Importation des modules
 # Modules de base
-import pandas as pd
+import matplotlib.font_manager as fm
 # Modules graphiques
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
+import pandas as pd
 import seaborn as sns
 # Nuages de mots
 from wordcloud import WordCloud
 
+
 # Fonction construisant une distribution
-def build_hisplot(data : pd.Series, title : str, xlabel : str, ylabel : str) -> None :
+def build_hisplot(data: pd.Series, title: str, xlabel: str, ylabel: str) -> None:
     """
     Build and display a histogram plot with a KDE (Kernel Density Estimate) curve.
 
@@ -34,8 +35,9 @@ def build_hisplot(data : pd.Series, title : str, xlabel : str, ylabel : str) -> 
 
     plt.show()
 
+
 # Fonction construisant un diagramme en barres
-def build_barplot(data : pd.Series, title : str, xlabel : str, ylabel : str) -> None :
+def build_barplot(data: pd.Series, title: str, xlabel: str, ylabel: str) -> None:
     """
     Build and display a bar plot.
 
@@ -60,7 +62,8 @@ def build_barplot(data : pd.Series, title : str, xlabel : str, ylabel : str) -> 
 
     plt.show()
 
-def build_wordcloud(text : str, title : str) -> None :
+
+def build_wordcloud(text: str, title: str) -> None:
     """
     Build and display a word cloud.
 
@@ -72,14 +75,16 @@ def build_wordcloud(text : str, title : str) -> None :
         None
     """
     # Generation d'une nuage de mots
-    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text=text)
+    wordcloud = WordCloud(width=800, height=400, background_color="white").generate(
+        text=text
+    )
 
     # Initialisation de la figure
     plt.figure(figsize=(10, 5))
     # Construction du graphique
-    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.imshow(wordcloud, interpolation="bilinear")
     # Suppression des axes
-    plt.axis('off')
+    plt.axis("off")
     # Titre du graphique
     plt.title(title)
 
