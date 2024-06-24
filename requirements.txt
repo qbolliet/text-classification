@@ -1,0 +1,11 @@
+numpy
+pandas
+matplotlib
+seaborn
+wordcloud
+sklearn
+nltk
+gensim
+pytorch
+transformers
+datasets
