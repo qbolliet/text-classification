@@ -227,12 +227,29 @@ class ZeroShotClassifier(BaseEstimator, ClassifierMixin):
         """
         # Définition des descriptions possibles des labels
         if self.label_descriptions is None:
-            self.label_descriptions = {
-                category: self.generate_summary(
-                    text=" ".join(X.loc[y == category, self.text_column])
-                )
-                for category in y.unique()
-            }
+            self.label_descriptions = {}
+            for category in y.unique():
+                category_texts = X.loc[y == category, self.text_column].tolist()
+                joined_text = " ".join(category_texts)
+                if not joined_text.strip():
+                    print(f"Warning: No text data for category {category}. Using placeholder description.")
+                    self.label_descriptions[category] = "No description available."
+                    continue
+
+                print(f"Generating summary for category {category} with text length {len(joined_text)}")
+                try:
+                    summary = self.generate_summary(text=joined_text)
+                    self.label_descriptions[category] = summary
+                except Exception as e:
+                    print(f"Error summarizing text for category {category}: {e}")
+                    # Fallback: use first 500 characters of joined text if summarization fails
+                    self.label_descriptions[category] = joined_text[:500]
+            # self.label_descriptions = {
+            #     category: self.generate_summary(
+            #         text=" ".join(X.loc[y == category, self.text_column].tolist())
+            #     )
+            #     for category in y.unique()
+            # }
 
         # Definition des lables candidats à partir de leur description
         self.candidate_labels = [
@@ -254,9 +271,12 @@ class ZeroShotClassifier(BaseEstimator, ClassifierMixin):
         Returns:
             list: The predicted labels.
         """
+        # Ensure X is a Series or DataFrame with the correct text column
+        texts = X[self.text_column].tolist() if isinstance(X, pd.DataFrame) else X.tolist()
+
         # Zero-shot classification
         results = self.classifier(
-            X, candidate_labels=self.candidate_labels, multi_label=False
+            texts, candidate_labels=self.candidate_labels, multi_label=False
         )
 
         # Association des labels prédits à leur valeur numérique
@@ -280,10 +300,37 @@ class ZeroShotClassifier(BaseEstimator, ClassifierMixin):
         Returns:
         str: The generated summary.
         """
-        # Génération du résumé
-        summary = self.summarizer(
-            text, max_length=max_length, min_length=min_length, do_sample=False
-        )
+        # # Génération du résumé
+        # summary = self.summarizer(
+        #     text, max_length=max_length, min_length=min_length, do_sample=False
+        # )
 
-        # Extraction et retour du résumé
-        return summary[0]["summary_text"]
+        # # Extraction et retour du résumé
+        # return summary[0]["summary_text"]
+
+
+        # # Generate summary
+        # try:
+        #     summary = self.summarizer(text, max_length=max_length, min_length=min_length, do_sample=False)
+        #     print(summary)
+        #     return summary[0]["summary_text"]
+        # except Exception as e:
+        #     print(f"Error generating summary: {e}")
+        #     return text[:max_length] 
+
+        # Split the text into chunks if it's too long
+        max_chunk_length = 1024  # The maximum length that the summarizer can handle
+        text_chunks = [text[i:i + max_chunk_length] for i in range(0, len(text), max_chunk_length)]
+        summaries = []
+
+        for chunk in text_chunks:
+            try:
+                print(f"Text chunk for summarization: {chunk[:500]}...")  # Print only the first 500 characters for debugging
+                summary = self.summarizer(chunk, max_length=max_length, min_length=min_length, do_sample=False)
+                summaries.append(summary[0]["summary_text"])
+            except Exception as e:
+                print(f"Error generating summary for chunk: {e}")
+                summaries.append(chunk[:max_length])  # Fallback: return truncated chunk
+
+        # Combine the summaries of all chunks
+        return " ".join(summaries)
